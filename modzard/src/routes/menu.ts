@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import type { MenuItemRequest, UiResponse } from '@devvit/web/shared';
 import type { FormField } from '@devvit/shared-types/shared/form.js';
+import { reddit } from '@devvit/web/server';
 
 export const menu = new Hono();
 
@@ -67,14 +68,9 @@ menu.post('/mop-post', async (c) => {
   );
 });
 
-menu.post('/modzard', async (c) => {
-  return c.json<UiResponse>(
-    {
-      showToast: {
-        text: 'Modzard opened! (panel coming next)',
-        appearance: 'success',
-      },
-    },
-    200
-  );
+menu.post('/modzard', async (_c) => {
+  const post = await reddit.submitCustomPost({
+    title: 'Modzard — Mod Intelligence Panel',
+  });
+  return _c.json<UiResponse>({ navigateTo: post.permalink }, 200);
 });

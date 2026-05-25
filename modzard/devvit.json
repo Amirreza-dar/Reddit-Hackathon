@@ -37,6 +37,16 @@
   "triggers": {
     "onAppInstall": "/internal/triggers/on-app-install"
   },
+  "post": {
+    "dir": "dist/client",
+    "entrypoints": {
+      "default": {
+        "entry": "index.html",
+        "height": "tall",
+        "inline": true
+      }
+    }
+  },
   "scripts": {
     "build": "vite build",
     "dev": "vite build --watch"
