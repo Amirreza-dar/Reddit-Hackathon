@@ -71,6 +71,7 @@ async function fetchPosts(subredditName: string, limit = 15): Promise<Post[]> {
   return json.data.children.map(({ data: p }) => ({
     postId: p.id,
     title: p.title,
+    author: p.author ?? 'unknown',
     body: p.selftext,
     flair: p.link_flair_text ?? undefined,
     postType: inferPostType(p),
@@ -120,14 +121,14 @@ function getMockRules(): SubredditRule[] {
 
 function getMockPosts(): Post[] {
   return [
-    { postId: 'abc01', title: 'Politics in Italy — election results', body: 'Analysis of the latest parliamentary elections.', flair: undefined, postType: 'text', domain: undefined },
-    { postId: 'abc02', title: 'Funny political meme of the week', body: '', flair: 'Meme', postType: 'image', domain: 'i.imgur.com' },
-    { postId: 'abc03', title: 'Need urgent medical advice — chest pain symptoms', body: 'I have been experiencing symptoms and want a diagnosis.', flair: 'Advice', postType: 'text', domain: undefined },
-    { postId: 'abc04', title: 'Breaking: major AI product launch', body: '', flair: 'News', postType: 'link', domain: 'technews.com' },
-    { postId: 'abc05', title: 'Survey for university research project', body: 'Please fill this short survey, it only takes 2 minutes.', flair: undefined, postType: 'text', domain: undefined },
-    { postId: 'abc06', title: 'New crypto regulations proposed by EU', body: '', flair: 'News', postType: 'link', domain: 'reuters.com' },
-    { postId: 'abc07', title: 'Check out my new blog on programming', body: 'I have been writing about web dev for years — here is my latest post.', flair: undefined, postType: 'link', domain: 'myblog.dev' },
-    { postId: 'abc08', title: 'Climate policy debate in parliament', body: 'Heated discussion over the new climate bill.', flair: 'Politics', postType: 'text', domain: undefined },
+    { postId: 'abc01', title: 'Politics in Italy — election results', author: 'user1', body: 'Analysis of the latest parliamentary elections.', flair: undefined, postType: 'text', domain: undefined },
+    { postId: 'abc02', title: 'Funny political meme of the week', author: 'user2', body: '', flair: 'Meme', postType: 'image', domain: 'i.imgur.com' },
+    { postId: 'abc03', title: 'Need urgent medical advice — chest pain symptoms', author: 'user3', body: 'I have been experiencing symptoms and want a diagnosis.', flair: 'Advice', postType: 'text', domain: undefined },
+    { postId: 'abc04', title: 'Breaking: major AI product launch', author: 'user4', body: '', flair: 'News', postType: 'link', domain: 'technews.com' },
+    { postId: 'abc05', title: 'Survey for university research project', author: 'user5', body: 'Please fill this short survey, it only takes 2 minutes.', flair: undefined, postType: 'text', domain: undefined },
+    { postId: 'abc06', title: 'New crypto regulations proposed by EU', author: 'user6', body: '', flair: 'News', postType: 'link', domain: 'reuters.com' },
+    { postId: 'abc07', title: 'Check out my new blog on programming', author: 'user7', body: 'I have been writing about web dev for years — here is my latest post.', flair: undefined, postType: 'link', domain: 'myblog.dev' },
+    { postId: 'abc08', title: 'Climate policy debate in parliament', author: 'user8', body: 'Heated discussion over the new climate bill.', flair: 'Politics', postType: 'text', domain: undefined },
   ];
 }
 

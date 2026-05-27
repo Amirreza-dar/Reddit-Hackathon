@@ -37,6 +37,9 @@ export interface ConflictResult {
 
 export interface PostImpactResult {
   postId: string;
+  title: string;
+  author: string;
+  body: string;
   level: ImpactLevel;
   score: number;
   reason: string;
@@ -45,6 +48,7 @@ export interface PostImpactResult {
 export interface Post {
   postId: string;
   title: string;
+  author: string;
   body: string;
   flair: string | undefined;
   postType: PostType;
@@ -87,7 +91,9 @@ export interface SubredditRule {
 export interface AnalysisResult {
   subredditName: string;
   newRuleText: string;
+  newRule: ParsedRule;
   existingRules: SubredditRule[];
   conflicts: ConflictResult[];
   affectedPosts: PostImpactResult[];
+  postsScanned: number;
 }

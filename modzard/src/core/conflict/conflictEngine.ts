@@ -7,53 +7,93 @@ const OPPOSITE_ACTIONS = new Set([
   'remove|allow',
   'allow|prohibit',
   'prohibit|allow',
+  'allow|restrict',
+  'restrict|allow',
 ]);
 
-function setIntersectionSize(a: string[], b: string[]): number {
-  const bSet = new Set(b.map((x) => x.toLowerCase()));
-  return a.filter((x) => bSet.has(x.toLowerCase())).length;
+// ── Semantic keyword matching ──────────────────────────────────────────────
+// Two keywords semantically match when they share a long enough common prefix
+// (approximates stemming: advice/advises, ban/banned, politics/political).
+
+function commonPrefixLen(a: string, b: string): number {
+  let i = 0;
+  while (i < a.length && i < b.length && a[i] === b[i]) i++;
+  return i;
 }
+
+export function semanticMatch(a: string, b: string): boolean {
+  const al = a.toLowerCase();
+  const bl = b.toLowerCase();
+  if (al === bl) return true;
+  const common = commonPrefixLen(al, bl);
+  const minLen = Math.min(al.length, bl.length);
+  // One word is fully contained as a prefix of the other (job/jobs, ban/banning)
+  if (common === minLen && minLen >= 3) return true;
+  // Long shared prefix covering at least 60% of the shorter word (advice/advises, politics/political)
+  return common >= 4 && common >= minLen * 0.6;
+}
+
+function semanticIntersectionSize(a: string[], b: string[]): number {
+  return a.filter(x => b.some(y => semanticMatch(x, y))).length;
+}
+
+// ── Scope overlap score ────────────────────────────────────────────────────
 
 export function computeScopeOverlap(a: ParsedRule, b: ParsedRule): number {
   let score = 0;
+
   if (a.subject === b.subject) score += 0.15;
   if (a.target === b.target) score += 0.15;
+
   if (a.condition.postType && b.condition.postType && a.condition.postType === b.condition.postType) {
     score += 0.2;
   }
+
   if (a.condition.flair && b.condition.flair) {
     if (a.condition.flair.toLowerCase() === b.condition.flair.toLowerCase()) {
       score += 0.2;
     }
   }
-  const keywordOverlap = setIntersectionSize(a.condition.keywords, b.condition.keywords);
+
+  const keywordOverlap = semanticIntersectionSize(a.condition.keywords, b.condition.keywords);
   if (keywordOverlap > 0) {
-    score += Math.min(0.2, keywordOverlap * 0.05);
+    // 0.15 per matching keyword-pair, capped at 0.45
+    score += Math.min(0.45, keywordOverlap * 0.15);
+    // Bonus when two or more topic keywords align — strong topical match
+    if (keywordOverlap >= 2) score += 0.05;
   }
-  const domainOverlap = setIntersectionSize(a.condition.domains, b.condition.domains);
+
+  const domainOverlap = semanticIntersectionSize(a.condition.domains, b.condition.domains);
   if (domainOverlap > 0) {
     score += 0.2;
   }
+
   return Math.min(score, 1);
 }
+
+// ── Helpers ────────────────────────────────────────────────────────────────
 
 function isOppositeAction(a: ParsedRule, b: ParsedRule): boolean {
   return OPPOSITE_ACTIONS.has(`${a.action}|${b.action}`);
 }
 
+function sameAction(a: RuleAction, b: RuleAction): boolean {
+  return a === b;
+}
+
 function specificReason(a: ParsedRule, b: ParsedRule): string | undefined {
   if (!isOppositeAction(a, b)) return undefined;
-  if (a.action === 'require' && b.action === 'prohibit') {
-    return `${a.ruleId} requires something in a scope that ${b.ruleId} prohibits`;
-  }
-  if (a.action === 'allow' && b.action === 'remove') {
-    return `${a.ruleId} allows content that ${b.ruleId} removes`;
+  if (a.action === 'allow' && (b.action === 'prohibit' || b.action === 'remove')) {
+    return `"${a.ruleId}" allows content that "${b.ruleId}" bans or removes`;
   }
   if (a.action === 'prohibit' && b.action === 'allow') {
-    return `${a.ruleId} prohibits content that ${b.ruleId} allows`;
+    return `"${a.ruleId}" bans content that "${b.ruleId}" allows`;
   }
-  if (a.action === 'allow' && b.action === 'prohibit') {
-    return `${a.ruleId} allows content that ${b.ruleId} prohibits`;
+  if (a.action === 'require' && b.action === 'prohibit') {
+    return `"${a.ruleId}" requires something in a scope that "${b.ruleId}" prohibits`;
+  }
+  if (a.action === 'restrict' && b.action === 'allow') {
+    return `"${a.ruleId}" restricts content that "${b.ruleId}" allows broadly`;
   }
   return 'Opposite actions detected on overlapping scope';
 }
@@ -76,17 +116,21 @@ function checkDirectFlairConflict(a: ParsedRule, b: ParsedRule): string | undefi
   return undefined;
 }
 
-function sameAction(a: RuleAction, b: RuleAction): boolean {
-  return a === b;
-}
+// ── Main detection ─────────────────────────────────────────────────────────
 
 export function detectConflicts(newRule: ParsedRule, existingRules: ParsedRule[]): ConflictResult[] {
   const results: ConflictResult[] = [];
+
   for (const oldRule of existingRules) {
     const overlap = computeScopeOverlap(newRule, oldRule);
     const oppositeReason = specificReason(newRule, oldRule);
     const flairReason = checkDirectFlairConflict(newRule, oldRule);
+    const kwOverlap = semanticIntersectionSize(
+      newRule.condition.keywords,
+      oldRule.condition.keywords
+    );
 
+    // ── Hard conflict ──────────────────────────────────────────────────────
     if (oppositeReason && overlap >= 0.55) {
       results.push({
         newRuleId: newRule.ruleId,
@@ -97,7 +141,24 @@ export function detectConflicts(newRule: ParsedRule, existingRules: ParsedRule[]
       });
       continue;
     }
-    if (flairReason && overlap >= 0.45) {
+
+    // ── Semantic safety net: opposite actions + shared topic keywords ──────
+    // Even moderate overlap should flag a conflict when the actions directly
+    // contradict each other on the same topic keywords (e.g. allow medical vs ban medical).
+    if (oppositeReason && kwOverlap >= 1 && overlap >= 0.25) {
+      const level = overlap >= 0.5 ? 'conflict' : 'possible_conflict';
+      results.push({
+        newRuleId: newRule.ruleId,
+        existingRuleId: oldRule.ruleId,
+        level,
+        score: overlap,
+        reason: `${oppositeReason}. Shared topic keywords detected. scopeOverlap=${overlap.toFixed(2)}`,
+      });
+      continue;
+    }
+
+    // ── Flair policy conflict ──────────────────────────────────────────────
+    if (flairReason && overlap >= 0.4) {
       results.push({
         newRuleId: newRule.ruleId,
         existingRuleId: oldRule.ruleId,
@@ -107,6 +168,8 @@ export function detectConflicts(newRule: ParsedRule, existingRules: ParsedRule[]
       });
       continue;
     }
+
+    // ── General scope overlap with different actions ───────────────────────
     if (overlap >= 0.5 && !sameAction(newRule.action, oldRule.action)) {
       results.push({
         newRuleId: newRule.ruleId,
@@ -117,5 +180,6 @@ export function detectConflicts(newRule: ParsedRule, existingRules: ParsedRule[]
       });
     }
   }
+
   return results.sort((a, b) => b.score - a.score);
 }

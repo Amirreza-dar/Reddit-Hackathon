@@ -30,11 +30,11 @@ function runCase(
 }
 
 const basePosts: Post[] = [
-  { postId: 'post_1', title: 'Politics in Italy', body: 'Election analysis and parliament news', flair: undefined, postType: 'text', domain: undefined },
-  { postId: 'post_2', title: 'Political meme', body: 'Funny meme about politics', flair: 'Meme', postType: 'image', domain: undefined },
-  { postId: 'post_3', title: 'Need medical advice urgently', body: 'Symptoms and diagnosis question', flair: 'Advice', postType: 'text', domain: undefined },
-  { postId: 'post_4', title: 'Breaking tech news', body: 'AI product launch', flair: 'News', postType: 'link', domain: 'technews.com' },
-  { postId: 'post_5', title: 'Survey for university project', body: 'Please fill this survey', flair: undefined, postType: 'text', domain: undefined },
+  { postId: 'post_1', title: 'Politics in Italy', author: 'user1', body: 'Election analysis and parliament news', flair: undefined, postType: 'text', domain: undefined },
+  { postId: 'post_2', title: 'Political meme', author: 'user2', body: 'Funny meme about politics', flair: 'Meme', postType: 'image', domain: undefined },
+  { postId: 'post_3', title: 'Need medical advice urgently', author: 'user3', body: 'Symptoms and diagnosis question', flair: 'Advice', postType: 'text', domain: undefined },
+  { postId: 'post_4', title: 'Breaking tech news', author: 'user4', body: 'AI product launch', flair: 'News', postType: 'link', domain: 'technews.com' },
+  { postId: 'post_5', title: 'Survey for university project', author: 'user5', body: 'Please fill this survey', flair: undefined, postType: 'text', domain: undefined },
 ];
 
 runCase(

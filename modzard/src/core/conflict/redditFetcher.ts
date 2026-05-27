@@ -14,6 +14,7 @@ function toPost(devvitPost: DevvitPost): Post {
   return {
     postId: devvitPost.id,
     title: devvitPost.title,
+    author: devvitPost.authorName,
     body: devvitPost.body ?? '',
     flair: devvitPost.flair?.text ?? undefined,
     postType: inferPostType(devvitPost),

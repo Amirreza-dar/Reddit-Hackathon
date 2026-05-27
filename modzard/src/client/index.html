@@ -1,276 +1,637 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>RuleIntel</title>
-    <style>
-      * {
-        box-sizing: border-box;
-        margin: 0;
-        padding: 0;
-      }
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RuleIntel</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-      body {
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        background: #ffffff;
-        color: #1c1c1c;
-        height: 100vh;
-        display: flex;
-        flex-direction: column;
-        padding: 16px;
-        gap: 12px;
-      }
+    :root {
+      --orange:      #FF4500;
+      --orange-dk:   #CC3700;
+      --blue:        #0079D3;
+      --green:       #00BA7C;
+      --amber:       #FFBE3D;
+      --red:         #FF585B;
+      --bg:          #FFFFFF;
+      --bg2:         #F6F7F8;
+      --border:      #EDEFF1;
+      --text:        #1C1C1C;
+      --meta:        #878A8C;
+      --r:           6px;
+    }
 
-      /* Header */
-      .header {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg2);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
 
-      .header-title {
-        font-size: 22px;
-        font-weight: 700;
-        color: #ff4500;
-      }
+    /* ─── HEADER ─────────────────────────────── */
+    .hd {
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      padding: 8px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .hd-brand { display: flex; align-items: center; gap: 8px; }
+    .hd-icon {
+      width: 30px; height: 30px;
+      background: var(--orange);
+      border-radius: 7px;
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-size: 13px; font-weight: 800; letter-spacing: -0.5px;
+    }
+    .hd-name { font-size: 15px; font-weight: 700; }
+    .hd-sub  { font-size: 11px; color: var(--meta); }
+    .hd-pill {
+      font-size: 11px; font-weight: 600;
+      color: var(--orange);
+      background: #FFF2EE; border: 1px solid #FFCBB8;
+      border-radius: 12px; padding: 2px 9px;
+    }
 
-      .header-subtitle {
-        font-size: 12px;
-        color: #878a8c;
-      }
+    /* ─── TABS ───────────────────────────────── */
+    .tabs {
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      display: flex; padding: 0 14px;
+      flex-shrink: 0;
+    }
+    .tab {
+      font-size: 13px; font-weight: 600;
+      padding: 9px 10px 7px;
+      cursor: pointer; color: var(--meta);
+      border-bottom: 2px solid transparent;
+      background: none; border-top: none; border-left: none; border-right: none;
+      transition: color .12s, border-color .12s;
+      display: flex; align-items: center; gap: 5px;
+      white-space: nowrap;
+    }
+    .tab.active { color: var(--orange); border-bottom-color: var(--orange); }
+    .tab:hover:not(.active) { color: var(--text); }
+    .tc {
+      font-size: 10px; font-weight: 700;
+      background: var(--border); color: var(--meta);
+      border-radius: 9px; padding: 1px 5px;
+      transition: background .2s, color .2s;
+    }
+    .tab.active .tc { background: #FFE8E0; color: var(--orange); }
 
-      /* Tab bar */
-      .tabs {
-        display: flex;
-        gap: 4px;
-      }
+    /* ─── PANELS ─────────────────────────────── */
+    .panels { flex: 1; overflow: hidden; position: relative; }
+    .panel {
+      position: absolute; inset: 0;
+      display: none; flex-direction: column;
+      overflow-y: auto; padding: 12px 14px; gap: 10px;
+    }
+    .panel.active { display: flex; }
+    .panel::-webkit-scrollbar { width: 4px; }
+    .panel::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
 
-      .tab {
-        font-size: 12px;
-        font-weight: 600;
-        padding: 4px 8px;
-        cursor: pointer;
-        color: #878a8c;
-        border-bottom: 2px solid transparent;
-        transition: color 0.15s, border-color 0.15s;
-        background: none;
-        border-top: none;
-        border-left: none;
-        border-right: none;
-      }
+    /* ─── TEXTAREA ───────────────────────────── */
+    .input-wrap { position: relative; }
+    .rule-ta {
+      width: 100%; padding: 10px 12px 34px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--r);
+      font-size: 13px; font-family: inherit;
+      color: var(--text); resize: none; height: 88px;
+      outline: none; background: var(--bg); line-height: 1.5;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .rule-ta:focus {
+      border-color: var(--orange);
+      box-shadow: 0 0 0 3px rgba(255,69,0,.08);
+    }
+    .rule-ta::placeholder { color: var(--meta); }
+    .ta-foot {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      padding: 5px 10px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .char-hint { font-size: 11px; color: var(--meta); }
+    .analyze-btn {
+      font-size: 12px; font-weight: 700;
+      padding: 4px 16px;
+      background: var(--orange); color: #fff;
+      border: none; border-radius: 20px;
+      cursor: pointer;
+      display: flex; align-items: center; gap: 5px;
+      transition: background .12s, transform .08s;
+    }
+    .analyze-btn:hover:not(:disabled) { background: var(--orange-dk); }
+    .analyze-btn:active:not(:disabled) { transform: scale(.97); }
+    .analyze-btn:disabled { background: var(--border); color: var(--meta); cursor: default; }
 
-      .tab.active {
-        color: #ff4500;
-        border-bottom-color: #ff4500;
-      }
+    /* ─── EMPTY ──────────────────────────────── */
+    .empty {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 7px; padding: 20px; text-align: center;
+    }
+    .empty-ico { font-size: 30px; }
+    .empty-ttl { font-size: 14px; font-weight: 600; }
+    .empty-dsc { font-size: 12px; color: var(--meta); max-width: 210px; line-height: 1.5; }
 
-      /* Divider */
-      .divider {
-        height: 1px;
-        background: #edeff1;
-        width: 100%;
-      }
+    /* ─── LOADING STEPS ──────────────────────── */
+    .steps { display: flex; flex-direction: column; gap: 9px; padding: 6px 2px; }
+    .step  { display: flex; align-items: center; gap: 9px; font-size: 13px; color: var(--meta); }
+    .step-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--border); flex-shrink: 0;
+      transition: background .2s;
+    }
+    .step.done   .step-dot { background: var(--green); }
+    .step.active .step-dot { background: var(--orange); animation: blink .85s infinite; }
+    @keyframes blink { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.45;transform:scale(.75)} }
 
-      /* Panel content */
-      .panel {
-        flex: 1;
-        display: none;
-        flex-direction: column;
-      }
+    /* ─── SECTION HEADER ─────────────────────── */
+    .sec-hd {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 5px;
+    }
+    .sec-ttl {
+      font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .7px; color: var(--meta);
+    }
+    .sec-ct {
+      font-size: 11px; font-weight: 600; color: var(--meta);
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 9px; padding: 1px 7px;
+    }
 
-      .panel.active {
-        display: flex;
-      }
+    /* ─── PARSED RULE CARD ───────────────────── */
+    .parsed {
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: var(--r); padding: 10px 12px;
+      display: flex; flex-direction: column; gap: 7px;
+    }
+    .p-row { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; }
+    .p-lbl {
+      font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .5px;
+      color: var(--meta); min-width: 58px;
+    }
+    .pill { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 9px; border: 1px solid transparent; }
+    .pill-a { background:#E9F5FF; color:#005FA3; border-color:#BAD9F5; }
+    .pill-t { background:#F0F5E9; color:#2E7D32; border-color:#C8E6C9; }
+    .pill-e { background:#FFF8E1; color:#E65100; border-color:#FFE082; }
+    .pill-k { background:var(--bg2); color:var(--meta); border-color:var(--border); }
 
-      /* Impact Preview panel */
-      .impact-body {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-      }
+    /* ─── RESULT CARDS ───────────────────────── */
+    .result-list { display: flex; flex-direction: column; gap: 6px; }
+    .rcard {
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: var(--r); padding: 9px 11px;
+      display: flex; gap: 9px; align-items: flex-start;
+    }
+    .rdot {
+      width: 8px; height: 8px; border-radius: 50%;
+      flex-shrink: 0; margin-top: 4px;
+    }
+    .rdot-r { background:var(--red);   box-shadow:0 0 0 3px rgba(255,88,91,.15); }
+    .rdot-a { background:var(--amber); box-shadow:0 0 0 3px rgba(255,190,61,.15); }
+    .rdot-g { background:var(--green); }
+    .rbody { flex: 1; min-width: 0; }
+    .rtitle {
+      font-size: 13px; font-weight: 600;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .rreason { font-size: 11px; color: var(--meta); margin-top: 2px; line-height: 1.4; }
+    .rmeta { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
+    .chip {
+      font-size: 10px; padding: 1px 6px;
+      border-radius: 8px; border: 1px solid var(--border);
+      color: var(--meta); background: var(--bg2);
+    }
+    .sbar-wrap { flex-shrink:0; display:flex; flex-direction:column; align-items:flex-end; gap:2px; }
+    .snum { font-size: 11px; font-weight: 700; color: var(--meta); }
+    .sbar { width: 36px; height: 3px; background: var(--border); border-radius: 2px; overflow:hidden; }
+    .sfill { height: 100%; border-radius: 2px; transition: width .4s ease; }
+    .sf-r { background: var(--red); }
+    .sf-a { background: var(--amber); }
 
-      .rule-input {
-        width: 100%;
-        padding: 10px 12px;
-        border: 1px solid #edeff1;
-        border-radius: 4px;
-        font-size: 14px;
-        resize: vertical;
-        min-height: 80px;
-        font-family: inherit;
-        color: #1c1c1c;
-        outline: none;
-        transition: border-color 0.15s;
-      }
+    /* ─── OK BANNER ──────────────────────────── */
+    .ok-banner {
+      display: flex; align-items: center; gap: 8px;
+      padding: 9px 12px;
+      background: #F0FBF5; border: 1px solid #B8E8CF;
+      border-radius: var(--r);
+      font-size: 12px; font-weight: 600; color: #1B7A47;
+    }
 
-      .rule-input:focus {
-        border-color: #ff4500;
-      }
+    /* ─── RULES LIST ─────────────────────────── */
+    .rlist { display: flex; flex-direction: column; gap: 6px; }
+    .ritem {
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: var(--r); padding: 10px 12px;
+      display: flex; gap: 10px;
+    }
+    .rnum {
+      width: 22px; height: 22px;
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 5px; font-size: 11px; font-weight: 700;
+      color: var(--meta); display: flex;
+      align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .rinfo { flex: 1; min-width: 0; }
+    .rname { font-size: 13px; font-weight: 600; }
+    .rdesc {
+      font-size: 11px; color: var(--meta); margin-top: 3px; line-height: 1.4;
+      display: -webkit-box; -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden;
+    }
+    .rkind {
+      display: inline-block; margin-top: 5px;
+      font-size: 10px; font-weight: 600;
+      padding: 1px 6px; border-radius: 8px;
+      border: 1px solid var(--border); color: var(--meta); background: var(--bg2);
+    }
 
-      .rule-input::placeholder {
-        color: #878a8c;
-      }
+    /* ─── GUIDE ──────────────────────────────── */
+    .gsec {
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: var(--r); padding: 12px 14px;
+      display: flex; flex-direction: column; gap: 7px;
+    }
+    .gttl { font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+    .gstep { display: flex; gap: 9px; font-size: 12px; color: var(--meta); line-height: 1.5; }
+    .gn {
+      width: 18px; height: 18px; background: var(--orange); color: #fff;
+      border-radius: 50%; font-size: 10px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px;
+    }
+    .gnote {
+      font-size: 11px; color: var(--meta);
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 5px; padding: 8px 10px; line-height: 1.5;
+    }
+    .leg { display: flex; align-items: flex-start; gap: 8px; font-size: 12px; color: var(--meta); line-height: 1.5; }
+    .leg-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink:0; margin-top: 4px; }
 
-      .placeholder-body {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-      }
+    /* ─── SPINNER ────────────────────────────── */
+    .spin {
+      width: 13px; height: 13px;
+      border: 2px solid rgba(255,255,255,.35);
+      border-top-color: #fff;
+      border-radius: 50%; animation: rot .7s linear infinite;
+    }
+    @keyframes rot { to { transform: rotate(360deg); } }
 
-      .placeholder-text {
-        font-size: 14px;
-        color: #878a8c;
-        text-align: center;
-      }
+    .hidden { display: none !important; }
 
-      .preview-results {
-        display: none;
-        flex-direction: column;
-        gap: 8px;
-      }
+    /* ─── ANALYTICS ─────────────────────────── */
+    .a-section { display: flex; flex-direction: column; gap: 6px; }
+    .a-ttl {
+      font-size: 10px; font-weight: 700; letter-spacing: .06em;
+      text-transform: uppercase; color: var(--meta); padding: 0 2px;
+    }
 
-      .result-card {
-        padding: 10px 12px;
-        border: 1px solid #edeff1;
-        border-radius: 4px;
-        font-size: 13px;
-      }
+    /* stat cards row */
+    .stat-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 6px; }
+    .stat-card {
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: var(--r); padding: 8px 10px; display: flex; flex-direction: column; gap: 2px;
+    }
+    .stat-val { font-size: 20px; font-weight: 800; line-height: 1; color: var(--text); }
+    .stat-lbl { font-size: 10px; color: var(--meta); }
 
-      .result-card .label {
-        font-size: 11px;
-        font-weight: 600;
-        color: #878a8c;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        margin-bottom: 4px;
-      }
+    /* impact score gauge */
+    .gauge-wrap {
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: var(--r); padding: 12px 14px;
+      display: flex; align-items: center; gap: 14px;
+    }
+    .gauge-svg { flex-shrink: 0; }
+    .gauge-info { flex: 1; }
+    .gauge-label { font-size: 13px; font-weight: 700; }
+    .gauge-desc { font-size: 11px; color: var(--meta); margin-top: 4px; line-height: 1.5; }
 
-      .result-card .value {
-        font-weight: 600;
-        color: #1c1c1c;
-      }
+    /* horizontal bar charts */
+    .chart-box {
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: var(--r); padding: 12px 14px;
+      display: flex; flex-direction: column; gap: 7px;
+    }
+    .chart-row { display: flex; align-items: center; gap: 7px; }
+    .chart-lbl { font-size: 11px; color: var(--meta); width: 72px; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .chart-lbl-wide { width: 90px; }
+    .chart-bar-bg { flex: 1; height: 10px; background: var(--bg2); border-radius: 5px; overflow: hidden; }
+    .chart-bar-fill { height: 100%; border-radius: 5px; transition: width .4s ease; }
+    .chart-cnt { font-size: 11px; color: var(--meta); width: 22px; text-align: right; flex-shrink: 0; }
 
-      .analyze-btn {
-        padding: 8px 16px;
-        background: #ff4500;
-        color: #fff;
-        border: none;
-        border-radius: 9999px;
-        font-size: 14px;
-        font-weight: 700;
-        cursor: pointer;
-        align-self: flex-start;
-        transition: background 0.15s;
-      }
+    /* post type pills */
+    .type-row { display: flex; gap: 6px; flex-wrap: wrap; }
+    .type-pill {
+      display: flex; align-items: center; gap: 5px;
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 20px; padding: 4px 10px; font-size: 11px; color: var(--meta);
+    }
+    .type-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 
-      .analyze-btn:hover {
-        background: #e03d00;
-      }
+    /* signal pills */
+    .signal-row { display: flex; gap: 5px; flex-wrap: wrap; }
+    .signal-pill {
+      font-size: 11px; padding: 3px 9px; border-radius: 20px;
+      border: 1px solid var(--border); background: var(--bg2); color: var(--meta);
+    }
 
-      /* Conflicts / Analytics placeholder */
-      .coming-soon {
-        flex: 1;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
+    /* two-col layout */
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 
-      .coming-soon-text {
-        font-size: 14px;
-        color: #878a8c;
-      }
-    </style>
-  </head>
-  <body>
-    <!-- Header -->
-    <div class="header">
-      <span class="header-title">RuleIntel</span>
-      <span class="header-subtitle">Modzard tool</span>
+    /* ─── POST POPUP ─────────────────────────── */
+    .rcard-click { cursor: pointer; }
+    .rcard-click:hover { background: #fafafa; border-color: #d0d2d4; }
+    .rauthor { font-size: 11px; color: var(--meta); margin-top: 2px; }
+    .chip-r { background: #FFE0E1; color: var(--red); }
+    .chip-a { background: #FFF8E7; color: #B8860B; }
+
+    #post-popup {
+      position: fixed; inset: 0; z-index: 1000;
+      display: flex; align-items: center; justify-content: center;
+    }
+    #popup-overlay {
+      position: absolute; inset: 0; background: rgba(0,0,0,.45);
+    }
+    .popup-box {
+      position: relative; z-index: 1;
+      background: var(--bg); border-radius: 10px;
+      width: calc(100% - 24px); max-width: 540px;
+      max-height: 80vh; overflow-y: auto;
+      padding: 16px; display: flex; flex-direction: column; gap: 10px;
+      box-shadow: 0 8px 32px rgba(0,0,0,.22);
+    }
+    .popup-hd {
+      display: flex; align-items: flex-start; justify-content: space-between; gap: 8px;
+    }
+    .popup-ttl {
+      font-size: 14px; font-weight: 700; line-height: 1.4; flex: 1;
+    }
+    .popup-close-btn {
+      flex-shrink: 0; background: none; border: none;
+      font-size: 18px; color: var(--meta); cursor: pointer; padding: 0 2px;
+      line-height: 1;
+    }
+    .popup-close-btn:hover { color: var(--text); }
+    .popup-meta { font-size: 11px; color: var(--meta); }
+    .popup-body-text {
+      font-size: 12px; color: var(--text); line-height: 1.6;
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 6px; padding: 10px 12px;
+      white-space: pre-wrap; word-break: break-word;
+    }
+    .popup-reason-row {
+      font-size: 11px; color: var(--meta); background: var(--bg2);
+      border: 1px solid var(--border); border-radius: 6px;
+      padding: 8px 10px; line-height: 1.5;
+    }
+    .popup-footer {
+      display: flex; align-items: center; gap: 8px; justify-content: space-between;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header class="hd">
+    <div class="hd-brand">
+      <div class="hd-icon">RI</div>
+      <div>
+        <div class="hd-name">RuleIntel</div>
+        <div class="hd-sub">Conflict &amp; impact analyzer</div>
+      </div>
     </div>
+    <div class="hd-pill" id="sub-badge">Mod Tool</div>
+  </header>
 
-    <!-- Tab bar -->
-    <div class="tabs">
-      <button class="tab active" data-tab="impact">Impact Preview</button>
-      <button class="tab" data-tab="conflicts">Conflicts</button>
-      <button class="tab" data-tab="analytics">Analytics</button>
-    </div>
+  <!-- TABS -->
+  <nav class="tabs">
+    <button class="tab active" data-tab="analyze">Analyze</button>
+    <button class="tab" data-tab="analytics">
+      Analytics <span class="tc" id="analytics-tc">—</span>
+    </button>
+    <button class="tab" data-tab="rules">
+      Rules <span class="tc" id="rules-tc">—</span>
+    </button>
+    <button class="tab" data-tab="guide">Guide</button>
+  </nav>
 
-    <!-- Divider -->
-    <div class="divider"></div>
+  <!-- PANELS -->
+  <div class="panels">
 
-    <!-- Impact Preview panel -->
-    <div class="panel active" id="panel-impact">
-      <div class="impact-body">
-        <textarea
-          class="rule-input"
-          id="rule-draft"
-          placeholder="Type a rule draft to get started..."
-        ></textarea>
-        <button class="analyze-btn" id="analyze-btn">Analyze</button>
-        <div class="preview-results" id="preview-results">
-          <div class="result-card">
-            <div class="label">Estimated posts affected</div>
-            <div class="value" id="result-posts">—</div>
-          </div>
-          <div class="result-card">
-            <div class="label">Estimated comments affected</div>
-            <div class="value" id="result-comments">—</div>
-          </div>
-          <div class="result-card">
-            <div class="label">Similar existing rules</div>
-            <div class="value" id="result-similar">—</div>
+    <!-- ── ANALYZE ── -->
+    <div class="panel active" id="panel-analyze">
+
+      <div class="input-wrap">
+        <textarea id="ta" class="rule-ta"
+          placeholder='Draft a new rule… e.g. "Posts about politics must use the Politics flair, otherwise remove them."'
+          spellcheck="false" maxlength="300"></textarea>
+        <div class="ta-foot">
+          <span class="char-hint" id="ch">0 / 300</span>
+          <button class="analyze-btn" id="abtn" disabled>
+            <span id="abtn-lbl">Analyze</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Empty state -->
+      <div class="empty" id="st-empty">
+        <div class="empty-ico">🔍</div>
+        <div class="empty-ttl">Type a rule to get started</div>
+        <div class="empty-dsc">RuleIntel checks your draft against existing rules and scans recent posts for potential impact.</div>
+      </div>
+
+      <!-- Loading -->
+      <div class="steps hidden" id="st-load">
+        <div class="step" id="s1"><div class="step-dot"></div><span>Fetching subreddit rules…</span></div>
+        <div class="step" id="s2"><div class="step-dot"></div><span>Scanning recent posts…</span></div>
+        <div class="step" id="s3"><div class="step-dot"></div><span>Running conflict engine…</span></div>
+      </div>
+
+      <!-- Results -->
+      <div class="hidden" id="st-results">
+
+        <!-- Parsed rule -->
+        <div>
+          <div class="sec-hd"><span class="sec-ttl">Rule parsed as</span></div>
+          <div class="parsed">
+            <div class="p-row">
+              <span class="p-lbl">Action</span>
+              <span class="pill pill-a" id="p-act">—</span>
+            </div>
+            <div class="p-row">
+              <span class="p-lbl">Target</span>
+              <span class="pill pill-t" id="p-tgt">—</span>
+            </div>
+            <div class="p-row hidden" id="p-eff-row">
+              <span class="p-lbl">Effect</span>
+              <span class="pill pill-e" id="p-eff">—</span>
+            </div>
+            <div class="p-row hidden" id="p-kw-row">
+              <span class="p-lbl">Keywords</span>
+              <span id="p-kws"></span>
+            </div>
           </div>
         </div>
-        <div class="placeholder-body" id="placeholder">
-          <span class="placeholder-text">Type a rule draft above and click Analyze.</span>
+
+        <!-- Conflicts -->
+        <div>
+          <div class="sec-hd">
+            <span class="sec-ttl">Conflicts</span>
+            <span class="sec-ct" id="c-ct">0</span>
+          </div>
+          <div class="ok-banner hidden" id="c-ok">✓&nbsp; No conflicts with existing rules</div>
+          <div class="result-list" id="c-list"></div>
         </div>
+
+        <!-- Affected posts -->
+        <div>
+          <div class="sec-hd">
+            <span class="sec-ttl">Affected recent posts</span>
+            <span class="sec-ct" id="p-ct">0</span>
+          </div>
+          <div class="ok-banner hidden" id="p-ok">✓&nbsp; No recent posts appear affected</div>
+          <div class="result-list" id="p-list"></div>
+        </div>
+
       </div>
     </div>
 
-    <!-- Conflicts panel -->
-    <div class="panel" id="panel-conflicts">
-      <div class="coming-soon">
-        <span class="coming-soon-text">Conflict detection coming soon.</span>
-      </div>
-    </div>
-
-    <!-- Analytics panel -->
+    <!-- ── ANALYTICS ── -->
     <div class="panel" id="panel-analytics">
-      <div class="coming-soon">
-        <span class="coming-soon-text">Analytics coming soon.</span>
+      <div class="empty" id="analytics-empty">
+        <div class="empty-ico">📊</div>
+        <div class="empty-ttl">No data yet</div>
+        <div class="empty-dsc">Run an analysis to see impact stats, score distribution, and top affected authors.</div>
+      </div>
+      <div class="hidden" id="analytics-body">
+
+        <!-- Summary stats -->
+        <div class="a-section">
+          <div class="a-ttl">Impact overview</div>
+          <div class="stat-row">
+            <div class="stat-card"><div class="stat-val" id="an-scanned">—</div><div class="stat-lbl">Posts scanned</div></div>
+            <div class="stat-card"><div class="stat-val" id="an-affected">—</div><div class="stat-lbl">Affected</div></div>
+            <div class="stat-card"><div class="stat-val" id="an-rate">—</div><div class="stat-lbl">Hit rate</div></div>
+            <div class="stat-card"><div class="stat-val" id="an-avg">—</div><div class="stat-lbl">Avg score</div></div>
+          </div>
+        </div>
+
+        <!-- Impact score gauge -->
+        <div class="a-section">
+          <div class="a-ttl">Rule impact score</div>
+          <div class="gauge-wrap">
+            <div class="gauge-svg" id="an-gauge"></div>
+            <div class="gauge-info">
+              <div class="gauge-label" id="an-impact-label">—</div>
+              <div class="gauge-desc" id="an-impact-desc"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Score distribution -->
+        <div class="a-section">
+          <div class="a-ttl">Score distribution</div>
+          <div class="chart-box" id="an-dist"></div>
+        </div>
+
+        <!-- Two-column: top authors + post types -->
+        <div class="two-col">
+          <div class="a-section">
+            <div class="a-ttl">Top affected authors</div>
+            <div class="chart-box" id="an-authors"></div>
+          </div>
+          <div class="a-section">
+            <div class="a-ttl">Post types</div>
+            <div class="chart-box" id="an-types"></div>
+          </div>
+        </div>
+
+        <!-- Match signals -->
+        <div class="a-section">
+          <div class="a-ttl">Match signals</div>
+          <div class="chart-box" id="an-signals"></div>
+        </div>
+
+        <!-- Conflicts summary -->
+        <div class="a-section hidden" id="an-conflicts-section">
+          <div class="a-ttl">Rule conflicts</div>
+          <div class="chart-box" id="an-conflicts-chart"></div>
+        </div>
+
       </div>
     </div>
 
-    <script>
-      // Tab switching
-      document.querySelectorAll('.tab').forEach((tab) => {
-        tab.addEventListener('click', () => {
-          document.querySelectorAll('.tab').forEach((t) => t.classList.remove('active'));
-          document.querySelectorAll('.panel').forEach((p) => p.classList.remove('active'));
-          tab.classList.add('active');
-          document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
-        });
-      });
+    <!-- ── RULES ── -->
+    <div class="panel" id="panel-rules">
+      <div class="empty" id="rules-empty">
+        <div class="empty-ico">📋</div>
+        <div class="empty-ttl">No rules found</div>
+        <div class="empty-dsc">This subreddit has no rules configured yet. Add rules in Subreddit Settings → Rules.</div>
+      </div>
+      <div class="rlist hidden" id="rules-list"></div>
+    </div>
 
-      // Analyze button — placeholder logic
-      document.getElementById('analyze-btn').addEventListener('click', () => {
-        const draft = document.getElementById('rule-draft').value.trim();
-        if (!draft) return;
+    <!-- ── GUIDE ── -->
+    <div class="panel" id="panel-guide">
 
-        document.getElementById('placeholder').style.display = 'none';
-        const results = document.getElementById('preview-results');
-        results.style.display = 'flex';
+      <div class="gsec">
+        <div class="gttl">⚡ How to use RuleIntel</div>
+        <div class="gstep"><div class="gn">1</div><span>Go to <strong>Analyze</strong> and type or paste a rule you want to add to your subreddit.</span></div>
+        <div class="gstep"><div class="gn">2</div><span>Hit <strong>Analyze</strong>. RuleIntel scans the 100 most recent posts for potential impact.</span></div>
+        <div class="gstep"><div class="gn">3</div><span>Review <strong>Conflicts</strong> — existing rules that contradict or overlap your draft.</span></div>
+        <div class="gstep"><div class="gn">4</div><span>Review <strong>Affected Posts</strong> — posts that would be caught if the rule were active today.</span></div>
+        <div class="gstep"><div class="gn">5</div><span>Refine the draft until the results look right, then add it in Subreddit Settings → Rules.</span></div>
+      </div>
 
-        // Placeholder values until backend is wired up
-        document.getElementById('result-posts').textContent = 'Analysis pending…';
-        document.getElementById('result-comments').textContent = 'Analysis pending…';
-        document.getElementById('result-similar').textContent = 'Analysis pending…';
-      });
-    </script>
-  </body>
+      <div class="gsec">
+        <div class="gttl">🎯 Conflict levels</div>
+        <div class="leg"><div class="leg-dot" style="background:var(--red)"></div><span><strong>Hard conflict</strong> — directly contradicts an existing rule (e.g. one allows, the other bans).</span></div>
+        <div class="leg"><div class="leg-dot" style="background:var(--amber)"></div><span><strong>Possible conflict</strong> — overlapping scope or different actions on similar content.</span></div>
+      </div>
+
+      <div class="gsec">
+        <div class="gttl">📊 Impact levels</div>
+        <div class="leg"><div class="leg-dot" style="background:var(--red)"></div><span><strong>Affected</strong> — high confidence this post would be caught (match score ≥ 60%).</span></div>
+        <div class="leg"><div class="leg-dot" style="background:var(--amber)"></div><span><strong>Possibly affected</strong> — moderate match on keywords, type, topic signals, or domain (20–60%).</span></div>
+      </div>
+
+      <div class="gnote">
+        <strong>Note:</strong> RuleIntel uses text pattern matching. It does not read AutoModerator configs or scan removed/deleted posts.
+      </div>
+
+    </div>
+  </div>
+
+  <!-- POST POPUP -->
+  <div id="post-popup" class="hidden">
+    <div id="popup-overlay"></div>
+    <div class="popup-box">
+      <div class="popup-hd">
+        <div class="popup-ttl" id="popup-title"></div>
+        <button class="popup-close-btn" id="popup-close">✕</button>
+      </div>
+      <div class="popup-meta" id="popup-author"></div>
+      <div class="popup-body-text" id="popup-body"></div>
+      <div class="popup-reason-row" id="popup-reason"></div>
+      <div class="popup-footer">
+        <span id="popup-badge" class="chip"></span>
+        <span style="font-size:12px;color:var(--meta);">Match score: <strong id="popup-score"></strong></span>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./main.js"></script>
+
+
+</body>
 </html>

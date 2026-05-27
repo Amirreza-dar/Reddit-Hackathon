@@ -20,11 +20,11 @@ const toolRules = [
 ];
 
 const posts: Post[] = [
-  { postId: 'p1', title: 'Politics in Europe', body: 'Discussion about elections and parliament', flair: undefined, postType: 'text', domain: undefined },
-  { postId: 'p2', title: 'Funny political meme', body: 'Meme about politics and government', flair: 'Meme', postType: 'image', domain: undefined },
-  { postId: 'p3', title: 'Need medical advice', body: 'I have symptoms and want a diagnosis', flair: 'Advice', postType: 'text', domain: undefined },
-  { postId: 'p4', title: 'News article about elections', body: 'Breaking politics update', flair: 'Politics', postType: 'link', domain: 'news.com' },
-  { postId: 'p5', title: 'Crypto market news', body: 'Discussion about bitcoin and AI', flair: undefined, postType: 'text', domain: undefined },
+  { postId: 'p1', title: 'Politics in Europe', author: 'user1', body: 'Discussion about elections and parliament', flair: undefined, postType: 'text', domain: undefined },
+  { postId: 'p2', title: 'Funny political meme', author: 'user2', body: 'Meme about politics and government', flair: 'Meme', postType: 'image', domain: undefined },
+  { postId: 'p3', title: 'Need medical advice', author: 'user3', body: 'I have symptoms and want a diagnosis', flair: 'Advice', postType: 'text', domain: undefined },
+  { postId: 'p4', title: 'News article about elections', author: 'user4', body: 'Breaking politics update', flair: 'Politics', postType: 'link', domain: 'news.com' },
+  { postId: 'p5', title: 'Crypto market news', author: 'user5', body: 'Discussion about bitcoin and AI', flair: undefined, postType: 'text', domain: undefined },
 ];
 
 const newRule = parseRule('new_rule_1', newRuleText, 'subreddit_rules');

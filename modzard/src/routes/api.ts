@@ -1,38 +1,33 @@
 import { Hono } from 'hono';
+import { context } from '@devvit/web/server';
 import { runConflictAnalysis } from '../core/conflict/analysis.js';
+import { fetchSubredditRules } from '../core/conflict/redditFetcher.js';
 
 export const api = new Hono();
 
 // POST /api/conflict-analysis
-// Body: { subredditName: string, newRuleText: string, postLimit?: number }
-// Returns: AnalysisResult — existing rules, conflicts, and affected recent posts
+// Body: { newRuleText: string, postLimit?: number }
 api.post('/conflict-analysis', async (c) => {
-  const body = await c.req.json<{
-    subredditName: string;
-    newRuleText: string;
-    postLimit?: number;
-  }>();
+  const body = await c.req.json<{ newRuleText: string; postLimit?: number }>();
 
-  if (!body.subredditName || !body.newRuleText) {
-    return c.json({ error: 'subredditName and newRuleText are required' }, 400);
+  if (!body.newRuleText?.trim()) {
+    return c.json({ error: 'newRuleText is required' }, 400);
   }
 
+  const subredditName = context.subredditName;
   const result = await runConflictAnalysis(
-    body.subredditName,
-    body.newRuleText,
-    body.postLimit ?? 25
+    subredditName,
+    body.newRuleText.trim(),
+    body.postLimit ?? 100
   );
 
   return c.json(result);
 });
 
-// GET /api/subreddit-rules?name=<subredditName>
-// Returns the raw rules for a subreddit so you can inspect them before analysis
+// GET /api/subreddit-rules
+// Returns the current subreddit rules for inspection
 api.get('/subreddit-rules', async (c) => {
-  const name = c.req.query('name');
-  if (!name) return c.json({ error: 'name query param is required' }, 400);
-
-  const { fetchSubredditRules } = await import('../core/conflict/redditFetcher.js');
-  const rules = await fetchSubredditRules(name);
-  return c.json({ subredditName: name, rules });
+  const subredditName = context.subredditName;
+  const rules = await fetchSubredditRules(subredditName);
+  return c.json({ subredditName, rules });
 });

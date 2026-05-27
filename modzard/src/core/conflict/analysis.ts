@@ -7,7 +7,7 @@ import type { AnalysisResult } from './types.js';
 export async function runConflictAnalysis(
   subredditName: string,
   newRuleText: string,
-  postLimit = 25
+  postLimit = 100
 ): Promise<AnalysisResult> {
   const [subredditRules, posts] = await Promise.all([
     fetchSubredditRules(subredditName),
@@ -16,7 +16,6 @@ export async function runConflictAnalysis(
 
   const newRule = parseRule('new_rule', newRuleText);
 
-  // Each rule uses shortName + description as the full text for parsing
   const existingParsed = subredditRules.map((r) =>
     parseRule(r.shortName, `${r.shortName}. ${r.description}`, 'subreddit_rules')
   );
@@ -27,8 +26,10 @@ export async function runConflictAnalysis(
   return {
     subredditName,
     newRuleText,
+    newRule,
     existingRules: subredditRules,
     conflicts,
     affectedPosts,
+    postsScanned: posts.length,
   };
 }
