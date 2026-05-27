@@ -12,7 +12,9 @@
     "lint": "eslint 'src/**/*.{ts,tsx}'",
     "login": "devvit login",
     "prettier": "prettier --write .",
-    "type-check": "tsc --build"
+    "type-check": "tsc --build",
+    "test:conflict": "TS_NODE_PROJECT=tsconfig.test.json node --loader ts-node/esm --no-warnings src/core/conflict/testCases.ts",
+    "test:live": "TS_NODE_PROJECT=tsconfig.test.json node --loader ts-node/esm --no-warnings src/core/conflict/testLive.ts"
   },
   "engines": {
     "node": ">=22.2.0"
