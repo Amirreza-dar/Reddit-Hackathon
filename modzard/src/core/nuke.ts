@@ -115,7 +115,6 @@ export async function handleNukePost(props: NukePostProps) {
           ? 'locked'
           : 'removed';
 
-    success = true;
     message = `Comments ${verbage}! Refresh the page to see the cleanup.`;
     const finishTime = Date.now();
     const timeElapsed = (finishTime - startTime) / 1000;
@@ -199,7 +198,6 @@ export async function handleNuke(props: NukeProps) {
           ? 'locked'
           : 'removed';
 
-    success = true;
     message = `Comments ${verbage}! Refresh the page to see the cleanup.`;
     const finishTime = Date.now();
     const timeElapsed = (finishTime - startTime) / 1000;

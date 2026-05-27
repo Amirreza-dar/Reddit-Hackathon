@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import type { MenuItemRequest, UiResponse } from '@devvit/web/shared';
 import type { FormField } from '@devvit/shared-types/shared/form.js';
-import { reddit } from '@devvit/web/server';
+import { reddit, redis } from '@devvit/web/server';
 
 export const menu = new Hono();
 
@@ -68,9 +68,16 @@ menu.post('/mop-post', async (c) => {
   );
 });
 
-menu.post('/modzard', async (_c) => {
-  const post = await reddit.submitCustomPost({
-    title: 'Modzard — Mod Intelligence Panel',
-  });
-  return _c.json<UiResponse>({ navigateTo: post.permalink }, 200);
+menu.post('/modzard', async (c) => {
+  // Navigate to the existing panel post created at install time
+  let permalink = await redis.get('modzard:panel_permalink');
+  if (!permalink) {
+    // Fallback: create one now if install trigger didn't run
+    const post = await reddit.submitCustomPost({
+      title: 'Modzard — Mod Intelligence Panel',
+    });
+    permalink = post.permalink;
+    await redis.set('modzard:panel_permalink', permalink);
+  }
+  return c.json<UiResponse>({ navigateTo: permalink }, 200);
 });

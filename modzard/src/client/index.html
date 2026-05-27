@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>RuleIntel</title>
+  <title>Modzard</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -289,6 +289,85 @@
 
     .hidden { display: none !important; }
 
+    /* ─── INSIGHTS ──────────────────────────────── */
+    .ins-run-row {
+      display: flex; justify-content: flex-end;
+    }
+    .ins-run-btn {
+      font-size: 12px; font-weight: 700;
+      padding: 7px 18px;
+      background: var(--orange); color: #fff;
+      border: none; border-radius: 20px;
+      cursor: pointer; white-space: nowrap;
+      display: flex; align-items: center; gap: 5px;
+      transition: background .12s, transform .08s;
+    }
+    .ins-run-btn:hover:not(:disabled) { background: var(--orange-dk); }
+    .ins-run-btn:active:not(:disabled) { transform: scale(.97); }
+    .ins-run-btn:disabled { background: var(--border); color: var(--meta); cursor: default; }
+    .ins-summary-card {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: var(--r); padding: 10px 12px;
+      font-size: 12px; color: var(--text); line-height: 1.6;
+    }
+
+    .cluster-card {
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: var(--r); padding: 10px 12px;
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .cluster-label { font-size: 13px; font-weight: 700; }
+    .cluster-meta  { font-size: 11px; color: var(--meta); }
+    .cluster-kws   { display: flex; gap: 4px; flex-wrap: wrap; }
+    .cluster-kw {
+      font-size: 10px; padding: 1px 6px;
+      border-radius: 8px; border: 1px solid var(--border);
+      color: var(--meta); background: var(--bg2);
+    }
+    .cluster-example {
+      font-size: 11px; color: var(--meta); font-style: italic;
+      border-left: 2px solid var(--border); padding-left: 8px;
+      line-height: 1.4;
+    }
+    .cluster-draft-btn {
+      font-size: 11px; font-weight: 600;
+      padding: 4px 12px; border-radius: 20px;
+      background: #FFF2EE; color: var(--orange);
+      border: 1px solid #FFCBB8; cursor: pointer;
+      align-self: flex-start;
+      transition: background .12s;
+    }
+    .cluster-draft-btn:hover { background: #FFE8E0; }
+
+    .sugg-rule-item {
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: var(--r); padding: 10px 12px;
+      display: flex; gap: 10px; align-items: flex-start;
+    }
+    .sugg-rule-text {
+      flex: 1; font-size: 12px; color: var(--text); line-height: 1.5;
+    }
+    .sugg-draft-btn {
+      font-size: 11px; font-weight: 600; white-space: nowrap;
+      padding: 4px 12px; border-radius: 20px;
+      background: var(--orange); color: #fff;
+      border: none; cursor: pointer; flex-shrink: 0;
+      transition: background .12s;
+    }
+    .sugg-draft-btn:hover { background: var(--orange-dk); }
+
+    .caveat-list {
+      background: #FFF8E1; border: 1px solid #FFE082;
+      border-radius: var(--r); padding: 10px 12px;
+      display: flex; flex-direction: column; gap: 5px;
+    }
+    .caveat-item { font-size: 11px; color: #6D5200; line-height: 1.4; }
+    .caveat-item::before { content: "⚠ "; }
+
+    .sev-high   { color: var(--red); }
+    .sev-medium { color: var(--amber); }
+    .sev-low    { color: var(--green); }
+
     /* ─── ANALYTICS ─────────────────────────── */
     .a-section { display: flex; flex-direction: column; gap: 6px; }
     .a-ttl {
@@ -404,10 +483,10 @@
   <!-- HEADER -->
   <header class="hd">
     <div class="hd-brand">
-      <div class="hd-icon">RI</div>
+      <div class="hd-icon">MZ</div>
       <div>
-        <div class="hd-name">RuleIntel</div>
-        <div class="hd-sub">Conflict &amp; impact analyzer</div>
+        <div class="hd-name">Modzard</div>
+        <div class="hd-sub">Mod intelligence &amp; rule analyzer</div>
       </div>
     </div>
     <div class="hd-pill" id="sub-badge">Mod Tool</div>
@@ -421,6 +500,9 @@
     </button>
     <button class="tab" data-tab="rules">
       Rules <span class="tc" id="rules-tc">—</span>
+    </button>
+    <button class="tab" data-tab="insights">
+      Insights <span class="tc" id="insights-tc">—</span>
     </button>
     <button class="tab" data-tab="guide">Guide</button>
   </nav>
@@ -447,7 +529,7 @@
       <div class="empty" id="st-empty">
         <div class="empty-ico">🔍</div>
         <div class="empty-ttl">Type a rule to get started</div>
-        <div class="empty-dsc">RuleIntel checks your draft against existing rules and scans recent posts for potential impact.</div>
+        <div class="empty-dsc">Modzard checks your draft against existing rules and scans recent posts for potential impact.</div>
       </div>
 
       <!-- Loading -->
@@ -581,13 +663,96 @@
       <div class="rlist hidden" id="rules-list"></div>
     </div>
 
+    <!-- ── INSIGHTS ── -->
+    <div class="panel" id="panel-insights">
+
+      <!-- Run row -->
+      <div class="ins-run-row">
+        <button class="ins-run-btn" id="ins-run-btn">
+          <span id="ins-run-lbl">Analyze</span>
+        </button>
+      </div>
+
+      <!-- Loading -->
+      <div class="steps hidden" id="ins-load">
+        <div class="step" id="is1"><div class="step-dot"></div><span>Fetching removed posts…</span></div>
+        <div class="step" id="is2"><div class="step-dot"></div><span>Building local pattern summary…</span></div>
+        <div class="step" id="is3"><div class="step-dot"></div><span>Running pattern analysis…</span></div>
+      </div>
+
+      <!-- Empty state -->
+      <div class="empty" id="ins-empty">
+        <div class="empty-ico">🔍</div>
+        <div class="empty-ttl">Local pattern analysis</div>
+        <div class="empty-dsc">Hit Analyze to discover why posts are being removed in this subreddit using local pattern matching.</div>
+      </div>
+
+      <!-- Results -->
+      <div class="hidden" id="ins-results">
+
+        <!-- Summary -->
+        <div class="a-section">
+          <div class="a-ttl">Summary</div>
+          <div class="ins-summary-card" id="ins-summary-text"></div>
+        </div>
+
+        <!-- Stats row -->
+        <div class="a-section">
+          <div class="a-ttl">Posts analyzed</div>
+          <div class="stat-row">
+            <div class="stat-card"><div class="stat-val" id="ins-count">—</div><div class="stat-lbl">Posts scanned</div></div>
+            <div class="stat-card"><div class="stat-val" id="ins-signals-ct">—</div><div class="stat-lbl">Signals found</div></div>
+            <div class="stat-card"><div class="stat-val" id="ins-clusters-ct">—</div><div class="stat-lbl">Clusters</div></div>
+            <div class="stat-card"><div class="stat-val" id="ins-rules-ct">—</div><div class="stat-lbl">Rule suggestions</div></div>
+          </div>
+        </div>
+
+        <!-- Top keywords -->
+        <div class="a-section">
+          <div class="a-ttl">Top keywords in removed posts</div>
+          <div class="chart-box" id="ins-keywords-chart"></div>
+        </div>
+
+        <!-- Topic cluster hits -->
+        <div class="a-section">
+          <div class="a-ttl">Topic distribution</div>
+          <div class="chart-box" id="ins-topics-chart"></div>
+        </div>
+
+        <!-- Signals -->
+        <div class="a-section" id="ins-signals-section">
+          <div class="a-ttl">Pattern signals</div>
+          <div class="result-list" id="ins-signals-list"></div>
+        </div>
+
+        <!-- Clusters -->
+        <div class="a-section" id="ins-clusters-section">
+          <div class="a-ttl">Content clusters</div>
+          <div class="result-list" id="ins-clusters-list"></div>
+        </div>
+
+        <!-- Suggested rules -->
+        <div class="a-section" id="ins-rules-section">
+          <div class="a-ttl">Suggested rules <span style="font-size:10px;font-weight:400;color:var(--meta);text-transform:none;letter-spacing:0">— click Draft to open in Analyze</span></div>
+          <div class="result-list" id="ins-rules-list"></div>
+        </div>
+
+        <!-- Caveats -->
+        <div class="a-section" id="ins-caveats-section">
+          <div class="a-ttl">Caveats</div>
+          <div class="caveat-list" id="ins-caveats-list"></div>
+        </div>
+
+      </div>
+    </div>
+
     <!-- ── GUIDE ── -->
     <div class="panel" id="panel-guide">
 
       <div class="gsec">
-        <div class="gttl">⚡ How to use RuleIntel</div>
+        <div class="gttl">⚡ How to use Modzard</div>
         <div class="gstep"><div class="gn">1</div><span>Go to <strong>Analyze</strong> and type or paste a rule you want to add to your subreddit.</span></div>
-        <div class="gstep"><div class="gn">2</div><span>Hit <strong>Analyze</strong>. RuleIntel scans the 100 most recent posts for potential impact.</span></div>
+        <div class="gstep"><div class="gn">2</div><span>Hit <strong>Analyze</strong>. Modzard scans the 100 most recent posts for potential impact.</span></div>
         <div class="gstep"><div class="gn">3</div><span>Review <strong>Conflicts</strong> — existing rules that contradict or overlap your draft.</span></div>
         <div class="gstep"><div class="gn">4</div><span>Review <strong>Affected Posts</strong> — posts that would be caught if the rule were active today.</span></div>
         <div class="gstep"><div class="gn">5</div><span>Refine the draft until the results look right, then add it in Subreddit Settings → Rules.</span></div>
@@ -606,7 +771,7 @@
       </div>
 
       <div class="gnote">
-        <strong>Note:</strong> RuleIntel uses text pattern matching. It does not read AutoModerator configs or scan removed/deleted posts.
+        <strong>Note:</strong> Modzard uses local text pattern matching. All analysis runs on-device — no external AI services are used.
       </div>
 
     </div>

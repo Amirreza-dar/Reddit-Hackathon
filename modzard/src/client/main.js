@@ -303,6 +303,309 @@ function renderRules(rules) {
   } catch (_) { /* silently skip if offline or during build */ }
 })();
 
+/* ── Insights tab ────────────────────────────────────── */
+const insRunBtn = $('ins-run-btn');
+
+function insStep(id, s) {
+  const el = $(id);
+  el.classList.remove('active', 'done');
+  if (s) el.classList.add(s);
+}
+
+function insSignalCard(sig) {
+  const sevColor = { high: '#FF585B', medium: '#FFBE3D', low: '#00BA7C' };
+  const color = sevColor[sig.severity] || '#878A8C';
+  const d = document.createElement('div');
+  d.className = 'rcard';
+  const examples = (sig.examples || []).slice(0, 2).map(e => `"${esc(e)}"`).join(', ');
+  d.innerHTML =
+    `<div class="rdot" style="background:${color};box-shadow:0 0 0 3px ${color}22"></div>` +
+    `<div class="rbody">` +
+      `<div class="rtitle">${esc(sig.topic)}</div>` +
+      `<div class="rreason">${examples || 'No examples'}</div>` +
+      `<div class="rmeta"><span class="chip sev-${sig.severity}">${sig.severity} severity</span>` +
+      `<span class="chip">${sig.frequency} posts</span></div>` +
+    `</div>`;
+  return d;
+}
+
+function insClusterCard(cl, onDraft) {
+  const d = document.createElement('div');
+  d.className = 'cluster-card';
+  const kwHtml = (cl.commonKeywords || []).slice(0, 6)
+    .map(k => `<span class="cluster-kw">${esc(k)}</span>`).join('');
+  const ex = (cl.examples || [])[0] || '';
+  d.innerHTML =
+    `<div class="cluster-label">${esc(cl.label)}</div>` +
+    `<div class="cluster-meta">${cl.postCount} posts</div>` +
+    `<div class="cluster-kws">${kwHtml}</div>` +
+    (ex ? `<div class="cluster-example">${esc(ex)}</div>` : '') +
+    (cl.suggestedRule
+      ? `<button class="cluster-draft-btn">Draft suggested rule →</button>`
+      : '');
+  if (cl.suggestedRule) {
+    d.querySelector('.cluster-draft-btn').addEventListener('click', () => onDraft(cl.suggestedRule));
+  }
+  return d;
+}
+
+function insSuggRuleItem(text, onDraft) {
+  const d = document.createElement('div');
+  d.className = 'sugg-rule-item';
+  d.innerHTML =
+    `<div class="sugg-rule-text">${esc(text)}</div>` +
+    `<button class="sugg-draft-btn">Draft →</button>`;
+  d.querySelector('.sugg-draft-btn').addEventListener('click', () => onDraft(text));
+  return d;
+}
+
+function draftRuleInAnalyze(ruleText) {
+  // Switch to Analyze tab and populate textarea
+  document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(x => x.classList.remove('active'));
+  document.querySelector('[data-tab="analyze"]').classList.add('active');
+  $('panel-analyze').classList.add('active');
+  const ta = $('ta');
+  ta.value = ruleText;
+  ta.dispatchEvent(new Event('input'));
+  ta.focus();
+}
+
+function renderInsights(data) {
+  const local = data.localSummary || {};
+  const llm   = data.llmAnalysis  || {};
+
+  // Stats
+  txt('ins-count',      data.postsAnalyzed || 0);
+  txt('ins-signals-ct', (llm.signals  || []).length);
+  txt('ins-clusters-ct',(llm.clusters || []).length);
+  txt('ins-rules-ct',   (llm.suggestedRules || []).length);
+  txt('insights-tc',    (llm.signals || []).length || '—');
+
+  // Summary
+  $('ins-summary-text').textContent = llm.summary || 'No summary available.';
+
+  // Top keywords bar chart
+  const kwEl = $('ins-keywords-chart');
+  kwEl.innerHTML = '';
+  const topKw = (local.topKeywords || []).slice(0, 12);
+  const maxKw  = topKw[0]?.count || 1;
+  if (topKw.length === 0) {
+    kwEl.innerHTML = '<div style="font-size:11px;color:var(--meta)">No keywords found.</div>';
+  } else {
+    topKw.forEach(k => kwEl.appendChild(hBar(k.word, k.count, maxKw, ORANGE)));
+  }
+
+  // Topic distribution
+  const topicsEl = $('ins-topics-chart');
+  topicsEl.innerHTML = '';
+  const topicEntries = Object.entries(local.topicCounts || {}).sort((a, b) => b[1] - a[1]);
+  const maxTopic = topicEntries[0]?.[1] || 1;
+  const topicColors = { politics: RED, medical: GREEN, spam: AMBER, hate: '#FF585B', media: BLUE, crypto: '#9C27B0', community: ORANGE };
+  if (topicEntries.length === 0) {
+    topicsEl.innerHTML = '<div style="font-size:11px;color:var(--meta)">No topic matches.</div>';
+  } else {
+    topicEntries.forEach(([topic, count]) =>
+      topicsEl.appendChild(hBar(topic, count, maxTopic, topicColors[topic] || GRAY, true)));
+  }
+
+  // Signals
+  const sigList = $('ins-signals-list');
+  sigList.innerHTML = '';
+  const signals = llm.signals || [];
+  if (signals.length > 0) {
+    signals.forEach(s => sigList.appendChild(insSignalCard(s)));
+  } else {
+    sigList.innerHTML = '<div style="font-size:11px;color:var(--meta)">No signals detected.</div>';
+  }
+
+  // Clusters
+  const clList = $('ins-clusters-list');
+  clList.innerHTML = '';
+  const clusters = llm.clusters || [];
+  if (clusters.length > 0) {
+    clusters.forEach(cl => clList.appendChild(insClusterCard(cl, draftRuleInAnalyze)));
+  } else {
+    clList.innerHTML = '<div style="font-size:11px;color:var(--meta)">No clusters identified.</div>';
+  }
+
+  // Suggested rules
+  const rList = $('ins-rules-list');
+  rList.innerHTML = '';
+  const suggestedRules = llm.suggestedRules || [];
+  if (suggestedRules.length > 0) {
+    suggestedRules.forEach(r => rList.appendChild(insSuggRuleItem(r, draftRuleInAnalyze)));
+  } else {
+    rList.innerHTML = '<div style="font-size:11px;color:var(--meta)">No rule suggestions.</div>';
+  }
+
+  // Caveats
+  const cavEl = $('ins-caveats-list');
+  cavEl.innerHTML = '';
+  const caveats = llm.caveats || [];
+  if (caveats.length > 0) {
+    caveats.forEach(c => {
+      const item = document.createElement('div');
+      item.className = 'caveat-item';
+      item.textContent = c;
+      cavEl.appendChild(item);
+    });
+    show('ins-caveats-section');
+  } else {
+    hide('ins-caveats-section');
+  }
+
+  hide('ins-empty');
+  show('ins-results');
+}
+
+/* ── Local analysis engine ───────────────────────────── */
+const TOPIC_WORDS = {
+  politics:  ['politics','political','government','election','democrat','republican','trump','biden','congress','senate','war','military','protest','vote','policy','administration','president','liberal','conservative'],
+  medical:   ['doctor','hospital','medicine','health','disease','cancer','covid','vaccine','mental','anxiety','depression','therapy','diagnosis','symptoms','treatment','prescription','surgery','illness','chronic'],
+  spam:      ['buy','sell','sale','discount','promo','offer','deal','cheap','free','giveaway','affiliate','referral','click','profit','earn','income','invest','crypto','nft','bitcoin'],
+  hate:      ['hate','racist','racism','slur','offensive','bigot','discrimination','sexist','homophobic','nazi','fascist','stereotype','slurs','derogatory','harass'],
+  media:     ['video','youtube','streaming','movie','show','series','episode','channel','podcast','music','tiktok','instagram','reel','clip','watch'],
+  crypto:    ['bitcoin','crypto','nft','blockchain','ethereum','token','wallet','trading','coin','defi','web3','metaverse','mint','hodl'],
+  community: ['rules','moderator','ban','report','spam','troll','selfpromo','promo','meta','feedback','complaint','rant','drama','mod'],
+};
+
+const TOPIC_LABELS = {
+  politics: 'Politics / Current Events',
+  medical:  'Medical / Health Advice',
+  spam:     'Spam / Self-Promotion',
+  hate:     'Hate Speech / Harassment',
+  media:    'Media / External Links',
+  crypto:   'Crypto / NFT Promotion',
+  community:'Community Meta',
+};
+
+const RULE_TEMPLATES = {
+  politics:  kws => `Posts related to politics or current events (e.g. ${kws.slice(0,3).join(', ')}) must use the appropriate flair and remain civil.`,
+  medical:   _kws => `Do not post medical advice or personal medical situations. Consult a licensed professional.`,
+  spam:      kws => `No self-promotion, affiliate links, or commercial content (e.g. ${kws.slice(0,2).join(', ')}). Posts must contribute to discussion.`,
+  hate:      _kws => `Hate speech, slurs, and targeted harassment are not permitted and will result in a ban.`,
+  media:     kws => `External links (e.g. ${kws.slice(0,2).join(', ')}) must be directly relevant to the subreddit topic and include a comment.`,
+  crypto:    _kws => `Crypto, NFT, and financial promotion posts are not allowed.`,
+  community: _kws => `Meta complaints and mod-related posts belong in the weekly thread, not as standalone posts.`,
+};
+
+function postTopicScore(post) {
+  const text = ((post.title || '') + ' ' + (post.body || '')).toLowerCase();
+  const scores = {};
+  for (const [topic, words] of Object.entries(TOPIC_WORDS)) {
+    let score = 0;
+    for (const w of words) {
+      if (text.includes(w)) score++;
+    }
+    scores[topic] = score;
+  }
+  return scores;
+}
+
+function runLocalAnalysis(posts, localSummary) {
+  // Assign each post to its best-matching topic
+  const topicPosts = {};
+  for (const post of posts) {
+    const scores = postTopicScore(post);
+    const best = Object.entries(scores).sort((a,b) => b[1]-a[1])[0];
+    if (best && best[1] > 0) {
+      if (!topicPosts[best[0]]) topicPosts[best[0]] = [];
+      topicPosts[best[0]].push(post);
+    }
+  }
+
+  const topKws = (localSummary.topKeywords || []).slice(0, 30);
+
+  // Build clusters
+  const clusters = Object.entries(topicPosts)
+    .sort((a,b) => b[1].length - a[1].length)
+    .map(([topic, tposts], i) => {
+      const topicWordSet = new Set(TOPIC_WORDS[topic] || []);
+      const relevantKws = topKws.filter(k => topicWordSet.has(k.word)).map(k => k.word).slice(0, 6);
+      return {
+        clusterId: 'cluster_' + (i+1),
+        label: TOPIC_LABELS[topic] || topic,
+        postCount: tposts.length,
+        commonKeywords: relevantKws.length ? relevantKws : topKws.slice(0,4).map(k=>k.word),
+        examples: tposts.slice(0,2).map(p => p.title).filter(Boolean),
+        suggestedRule: (RULE_TEMPLATES[topic] || (()=>''))(relevantKws),
+      };
+    });
+
+  // Build signals from clusters
+  const signals = clusters.map(c => ({
+    topic: c.label,
+    frequency: c.postCount,
+    examples: c.examples,
+    severity: c.postCount >= 10 ? 'high' : c.postCount >= 4 ? 'medium' : 'low',
+  }));
+
+  // Suggested rules from clusters that have enough posts
+  const suggestedRules = clusters
+    .filter(c => c.postCount >= 2 && c.suggestedRule)
+    .map(c => c.suggestedRule);
+
+  // Summary
+  const topCluster = clusters[0];
+  const totalClustered = clusters.reduce((s,c) => s + c.postCount, 0);
+  const summary = topCluster
+    ? `${totalClustered} of ${posts.length} scanned posts match known removal patterns. The most common category is "${topCluster.label}" (${topCluster.postCount} posts). ${clusters.length} content cluster${clusters.length !== 1 ? 's' : ''} identified.`
+    : `${posts.length} posts scanned. No strong topic patterns detected — posts may have been removed for formatting or other rule violations.`;
+
+  const caveats = [
+    'This analysis uses local keyword pattern matching, not AI. Results are based on topic clusters from the scanned posts.',
+    'Only posts visible to the app are scanned (new/recent queue). Older removed posts may not appear.',
+  ];
+
+  return { summary, signals, clusters, suggestedRules, caveats };
+}
+
+insRunBtn.addEventListener('click', async () => {
+  insRunBtn.disabled = true;
+  txt('ins-run-lbl', '');
+  $('ins-run-lbl').innerHTML = '<div class="spin"></div>';
+  hide('ins-empty'); hide('ins-results'); show('ins-load');
+  insStep('is1', 'active'); insStep('is2', ''); insStep('is3', '');
+
+  try {
+    const res = await fetch('/api/removed-posts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ limit: 50 }),
+    });
+    if (!res.ok) {
+      const e = await res.json().catch(() => ({ error: res.statusText }));
+      throw new Error(e.error || 'HTTP ' + res.status);
+    }
+    const { posts, localSummary, subredditName: subName } = await res.json();
+    insStep('is1', 'done'); insStep('is2', 'active');
+    await wait(200);
+
+    const localResult = runLocalAnalysis(posts, localSummary);
+    insStep('is2', 'done'); insStep('is3', 'active');
+    await wait(200);
+    insStep('is3', 'done');
+    await wait(150);
+
+    if (subName) txt('sub-badge', 'r/' + subName);
+
+    renderInsights({ postsAnalyzed: posts.length, localSummary, llmAnalysis: localResult });
+    hide('ins-load');
+    txt('insights-tc', (localResult.signals || []).length || '—');
+
+  } catch (err) {
+    hide('ins-load');
+    $('ins-empty').querySelector('.empty-ico').textContent = '⚠️';
+    $('ins-empty').querySelector('.empty-ttl').textContent = 'Analysis failed';
+    $('ins-empty').querySelector('.empty-dsc').textContent = err.message;
+    show('ins-empty');
+  } finally {
+    insRunBtn.disabled = false;
+    txt('ins-run-lbl', 'Analyze');
+  }
+});
+
 /* ── Analyze ─────────────────────────────────────────── */
 abtn.addEventListener('click', async () => {
   const text = ta.value.trim();
